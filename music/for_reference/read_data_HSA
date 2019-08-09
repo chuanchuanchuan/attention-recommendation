@@ -1,0 +1,113 @@
+import pickle
+import random
+
+wd = './music/'
+wd = ''
+f = open(wd + 'user_info.txt', 'r')
+user_info = f.readlines()
+f.close()
+f = open(wd + 'song_info.txt', 'r', encoding='utf8')
+song_info = f.readlines()
+f.close()
+
+'''
+读取音乐数据 
+'''
+song_info = song_info[1:]
+song_dic = {}
+for line in song_info:
+    sname, sid, singer, album, cnum, zuoqu, zuoci, rateduser = line.split('\t')
+    sid = int(sid)
+    song_dic[sid] = [singer, album, zuoci]
+
+'''
+读取用户数据
+'''
+user_info = user_info[1:]
+user_dic = {}
+rated_song = set()
+
+for line in user_info:
+    uid, cnum, songls = line.split('\t')
+    uid = int(uid)
+    songls = eval(songls)
+    songls = list(map(lambda x: int(x), songls))
+    unknowsong = []
+    for song in songls:
+        if song not in song_dic:
+            unknowsong.append(song)
+        else:
+            rated_song.add(song)
+    for song in unknowsong:
+        songls.remove(song)
+    user_dic[uid] = songls
+
+uidls = list(user_dic.keys())
+sidls = list(song_dic.keys())
+
+'''
+删除未出现过的歌曲
+'''
+for i in sidls:
+    if i not in rated_song:
+        sidls.remove(i)
+
+'''
+将用户、歌曲重新编号。使其为连续的自然数。
+'''
+
+
+def get_new_uid(uid):
+    return uidls.index(uid)
+
+
+def get_new_sid(sid):
+    return sidls.index(sid)
+
+
+vocabulary = ['Unknown']
+user_info = {}
+song_info = {}
+for i in sidls:
+    sinfo = 's' + str(get_new_sid(i))
+    if sinfo not in vocabulary:
+        vocabulary.append(sinfo)
+    song_info[get_new_sid(i)] = [vocabulary.index(sinfo)]
+
+dataset = 'music'
+f = open(wd + "music.train.rating", "r")
+
+r=f.readlines()
+train={}
+for line in r:
+    uid,iid,rating=line.strip().split('\t')
+    uid=int(uid)
+    iid=int(iid)
+    if rating=='5':
+        if uid not in train:
+            train[uid]=[]
+        train[uid].append(iid)
+
+for user_id in user_dic:
+    nuid = get_new_uid(user_id)
+    u_info = 'u' + str(nuid)
+    vocabulary.append(u_info)
+    user_info[nuid] = []
+    if nuid not in train:
+        train[nuid]=[]
+
+    for song in train[nuid]:
+        sinfo = 's' + str(song)
+        user_info[nuid].append(vocabulary.index(sinfo))
+        if len(user_info[nuid]) == 10:
+            break
+    while len(user_info[nuid]) < 10:
+        user_info[nuid].append(0)
+    user_info[nuid].append(vocabulary.index(u_info))
+
+
+f.close()
+
+pickle.dump(user_info, open('user_hist_music', 'wb'))
+pickle.dump(song_info, open('song_id_music', 'wb'))
+print(len(vocabulary))
