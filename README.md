@@ -1,0 +1,2 @@
+# attention-recommendation
+ 基于Keras框架的推荐系统的多个经典模型实现及添加自注意力机制的实现
